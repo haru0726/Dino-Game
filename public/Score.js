@@ -11,9 +11,9 @@ class Score {
     this.ctx = ctx;
     this.canvas = ctx.canvas;
     this.scaleRatio = scaleRatio;
-    this.stageTable = stageTable; // 외부에서 전달된 스테이지 테이블 사용
-    this.itemTabel = itemTable;
-    this.itemController = itemController; // itemController 를 저장
+    this.stageTable = stageTable;
+    this.itemTable = itemTable;
+    this.itemController = itemController;
 
     // 모든 스테이지에 대해 stageChanged 초기화
     this.stageTable.forEach((stage) => {
@@ -34,8 +34,6 @@ class Score {
       this.scoreIncrement -= scorePerSecond;
     }
 
-    // this.score += deltaTime * 0.001;
-
     this.checkStageChange();
   }
 
@@ -43,7 +41,6 @@ class Score {
     for (let i = 0; i < this.stageTable.length; i++) {
       const stage = this.stageTable[i];
 
-      // 현재 점수가 스테이지 점수 이상이고, 해당 스테이지로 변경된 적이 없는 경우
       if (
         Math.floor(this.score) >= stage.score &&
         !this.stageChanged[stage.id] &&
@@ -52,25 +49,42 @@ class Score {
         const previousStage = this.currentStage;
         this.currentStage = stage.id;
 
-        // 해당 스테이지로 변경됨을 표시
         this.stageChanged[stage.id] = true;
-
-        // 서버로 이벤트 전송
         sendEvent(11, { currentStage: previousStage, targetStage: this.currentStage });
 
-        // 아이템 컨트롤러에 현재 스테이지 설정
         if (this.itemController) {
           this.itemController.setCurrentStage(this.currentStage);
         }
 
-        // 스테이지 변경 후 반복문 종료
+        this.showStageChangeNotification(previousStage, this.currentStage);
         break;
       }
     }
   }
 
+  showStageChangeNotification(previousStage, currentStage) {
+    const notification = document.createElement('div');
+    notification.className = 'stage-notification';
+    notification.innerText = `스테이지가 ${previousStage - 999}에서 ${currentStage - 999}로 변경되었습니다!`;
+    document.body.appendChild(notification);
+
+    // 애니메이션 효과 추가
+    setTimeout(() => {
+      notification.classList.add('show'); // 표시
+    }, 100); // 짧은 지연 후 표시
+
+    // 3초 후 사라지게
+    setTimeout(() => {
+      notification.classList.remove('show'); // 숨기기
+    }, 3000); // 3초 후
+
+    setTimeout(() => {
+      document.body.removeChild(notification); // 완전히 제거
+    }, 3500); // 3.5초 후 완전히 제거
+  }
+
   getItem(itemId) {
-    const itemInfo = this.itemTabel.find((item) => item.id === itemId);
+    const itemInfo = this.itemTable.find((item) => item.id === itemId);
     if (itemInfo) {
       this.score += itemInfo.score;
       sendEvent(21, { itemId, timestamp: Date.now() });
@@ -82,12 +96,10 @@ class Score {
     this.scoreIncrement = 0;
     this.currentStage = 1000; // 스테이지 초기화
 
-    // 모든 스테이지에 대한 변경 플래그 초기화
     Object.keys(this.stageChanged).forEach((key) => {
       this.stageChanged[key] = false;
     });
 
-    // 아이템 컨트롤러에 현재 스테이지 설정
     if (this.itemController) {
       this.itemController.setCurrentStage(this.currentStage);
     }
@@ -121,21 +133,21 @@ class Score {
     this.ctx.fillText(scorePadded, scoreX, y);
     this.ctx.fillText(`HI ${highScorePadded}`, highScoreX, y);
 
-    // 스테이지 표시
     this.drawStage();
   }
 
   drawStage() {
-    const stageY = 20 * this.scaleRatio; // Y 위치를 스코어와 동일하게 설정
-    const fontSize = 20 * this.scaleRatio; // 폰트 크기를 스코어와 동일하게 설정
-    this.ctx.font = `bold ${fontSize}px serif`; // 글꼴을 진하게 설정
-    this.ctx.fillStyle = '#525250'; // 스코어와 같은 색상 사용
-  
-    const stageText = `Stage ${this.currentStage - 999}`; // 스테이지 번호 계산
-    const stageX = 20 * this.scaleRatio; // X 위치를 왼쪽 상단으로 설정
-  
-    this.ctx.fillText(stageText, stageX, stageY); // 스테이지 텍스트 그리기
-  }  
+    const stageY = 20 * this.scaleRatio;
+    const fontSize = 20 * this.scaleRatio;
+    this.ctx.font = `bold ${fontSize}px serif`;
+    this.ctx.fillStyle = '#525250';
+
+    const stageText = `Stage ${this.currentStage - 999}`;
+    const stageX = 20 * this.scaleRatio;
+
+    this.ctx.fillText(stageText, stageX, stageY);
+  }
 }
+
 
 export default Score;

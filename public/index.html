@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -29,6 +29,28 @@
       }
       canvas {
         border: 2px solid grey;
+      }
+
+      .stage-notification {
+        position: fixed;
+        top: 20%; /* 위쪽으로 이동 */
+        left: 50%;
+        transform: translate(-50%, 0); /* 수평 중앙 정렬 */
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 1em 2em;
+        border-radius: 10px;
+        font-size: 1.5em;
+        z-index: 1000;
+        opacity: 0;
+        transition:
+          opacity 0.5s,
+      }
+
+      .stage-notification.show {
+        opacity: 1;
+        top: 20%; /* 표시될 때 위쪽으로 유지 */
+        transform: translate(-50%, -50%); /* 중앙 정렬 */
       }
     </style>
     <script src="https://cdn.socket.io/socket.io-3.0.1.min.js"></script>
