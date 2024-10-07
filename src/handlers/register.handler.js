@@ -1,25 +1,19 @@
 import { v4 as uuidv4 } from 'uuid';
-import { addUser, getUsers } from '../models/user.model.js'; // 사용자 목록 관련 함수들 불러오기
-import { handleConnection, handleDisconnect, handlerEvent } from './helper.js';
-
-const createStage = (userUUID) => {
-  console.log(`Stage created for user: ${userUUID}`);
-};
+import { addUser } from '../models/user.model.js';
+import { handleConnection, handleDisconnect, handleEvent } from './helper.js';
 
 const registerHandler = (io) => {
   io.on('connection', (socket) => {
-    const userUUID = uuidv4(); // 새로운 UUID 생성
+    // 최초 커넥션을 맺은 이후 발생하는 각종 이벤트를 처리하는 곳
+
+    const userUUID = uuidv4(); // UUID 생성
     addUser({ uuid: userUUID, socketId: socket.id }); // 사용자 추가
 
-    createStage(userUUID); // 스테이지 생성
+    handleConnection(socket, userUUID);
 
-    handleConnection(socket, userUUID); // 연결 핸들러 호출
-
-    // 연결된 모든 사용자 목록을 출력
-    const currentUsers = getUsers();
-    console.log(`Current users:`, currentUsers);
-
-    socket.on('event', (data) => handlerEvent(io, socket, data));
+    // 모든 서비스 이벤트 처리
+    socket.on('event', (data) => handleEvent(io, socket, data));
+    // 접속 해제시 이벤트 처리
     socket.on('disconnect', () => handleDisconnect(socket, userUUID));
   });
 };

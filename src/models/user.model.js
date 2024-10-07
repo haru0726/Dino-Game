@@ -12,7 +12,7 @@ export const removeUser = (socketId) => {
 };
 
 export const getUser = (socketId) => {
-    return users.find((user) => user.socketId === socketId);
+    return users;
 };
 
 export const getUsers = () => {

@@ -2,52 +2,95 @@ import { sendEvent } from './Socket.js';
 
 class Score {
   score = 0;
+  scoreIncrement = 0;
   HIGH_SCORE_KEY = 'highScore';
-  stageChange = true;
+  currentStage = 1000; // 현재 스테이지 ID
+  stageChanged = {}; // 스테이지 변경 확인용 플래그
 
-  constructor(ctx, scaleRatio) {
+  constructor(ctx, scaleRatio, stageTable, itemTable, itemController) {
     this.ctx = ctx;
     this.canvas = ctx.canvas;
     this.scaleRatio = scaleRatio;
+    this.stageTable = stageTable; // 외부에서 전달된 스테이지 테이블 사용
+    this.itemTabel = itemTable;
+    this.itemController = itemController; // itemController 를 저장
+
+    // 모든 스테이지에 대해 stageChanged 초기화
+    this.stageTable.forEach((stage) => {
+      this.stageChanged[stage.id] = false;
+    });
   }
 
   update(deltaTime) {
-    this.score += deltaTime * 0.001;
-    // 점수가 100점 이상이 될 시 서버에 메세지 전송
-    if (Math.floor(this.score) === 10 && this.stageChange) {
-      this.stageChange = false;
-      sendEvent(11, { currentStage: 1000, targetStage: 1001 });
+    const currentStageInfo = this.stageTable.find((stage) => stage.id === this.currentStage);
+    const scorePerSecond = currentStageInfo ? currentStageInfo.scorePerSecond : 1;
+
+    // 증가분을 누적
+    this.scoreIncrement += deltaTime * 0.001 * scorePerSecond;
+
+    // 증가분이 scorePerSecond 만큼 쌓이면 score에 반영하고 초기화
+    if (this.scoreIncrement >= scorePerSecond) {
+      this.score += scorePerSecond;
+      this.scoreIncrement -= scorePerSecond;
+    }
+
+    // this.score += deltaTime * 0.001;
+
+    this.checkStageChange();
+  }
+
+  checkStageChange() {
+    for (let i = 0; i < this.stageTable.length; i++) {
+      const stage = this.stageTable[i];
+
+      // 현재 점수가 스테이지 점수 이상이고, 해당 스테이지로 변경된 적이 없는 경우
+      if (
+        Math.floor(this.score) >= stage.score &&
+        !this.stageChanged[stage.id] &&
+        stage.id !== 1000
+      ) {
+        const previousStage = this.currentStage;
+        this.currentStage = stage.id;
+
+        // 해당 스테이지로 변경됨을 표시
+        this.stageChanged[stage.id] = true;
+
+        // 서버로 이벤트 전송
+        sendEvent(11, { currentStage: previousStage, targetStage: this.currentStage });
+
+        // 아이템 컨트롤러에 현재 스테이지 설정
+        if (this.itemController) {
+          this.itemController.setCurrentStage(this.currentStage);
+        }
+
+        // 스테이지 변경 후 반복문 종료
+        break;
+      }
     }
   }
 
   getItem(itemId) {
-    switch (itemId) {
-      case 1: // 아이템 ID에 따라 점수 조정
-        this.score += 10;
-        break;
-      case 2:
-        this.score += 20;
-        break;
-      case 3:
-        this.score += 30;
-        break;
-      case 4:
-        this.score += 40;
-        break;
-      case 5:
-        this.score += 50;
-        break;
-      case 6:
-        this.score += 60;
-        break;
-      default:
-        this.score += 0; // 기본 점수 (이 경우 없음)
-        break;
+    const itemInfo = this.itemTabel.find((item) => item.id === itemId);
+    if (itemInfo) {
+      this.score += itemInfo.score;
+      sendEvent(21, { itemId, timestamp: Date.now() });
     }
   }
 
   reset() {
     this.score = 0;
+    this.scoreIncrement = 0;
+    this.currentStage = 1000; // 스테이지 초기화
+
+    // 모든 스테이지에 대한 변경 플래그 초기화
+    Object.keys(this.stageChanged).forEach((key) => {
+      this.stageChanged[key] = false;
+    });
+
+    // 아이템 컨트롤러에 현재 스테이지 설정
+    if (this.itemController) {
+      this.itemController.setCurrentStage(this.currentStage);
+    }
   }
 
   setHighScore() {
@@ -77,7 +120,22 @@ class Score {
 
     this.ctx.fillText(scorePadded, scoreX, y);
     this.ctx.fillText(`HI ${highScorePadded}`, highScoreX, y);
+
+    // 스테이지 표시
+    this.drawStage();
   }
+
+  drawStage() {
+    const stageY = 20 * this.scaleRatio; // Y 위치를 스코어와 동일하게 설정
+    const fontSize = 20 * this.scaleRatio; // 폰트 크기를 스코어와 동일하게 설정
+    this.ctx.font = `bold ${fontSize}px serif`; // 글꼴을 진하게 설정
+    this.ctx.fillStyle = '#525250'; // 스코어와 같은 색상 사용
+  
+    const stageText = `Stage ${this.currentStage - 999}`; // 스테이지 번호 계산
+    const stageX = 20 * this.scaleRatio; // X 위치를 왼쪽 상단으로 설정
+  
+    this.ctx.fillText(stageText, stageX, stageY); // 스테이지 텍스트 그리기
+  }  
 }
 
 export default Score;

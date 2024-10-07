@@ -7,7 +7,6 @@ class Item {
         this.width = width;
         this.height = height;
         this.image = image;
-        this.active = true; // 아이템 활성화 상태
     }
 
     update(speed, gameSpeed, deltaTime, scaleRatio) {
@@ -38,27 +37,5 @@ class Item {
         return result;
     }
 }
-
-// 예시: 플레이어 클래스
-class Player {
-    constructor(ctx, x, y, width, height) {
-        this.ctx = ctx;
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
-    }
-
-    // 기타 메서드...
-
-    checkItemCollision(item) {
-        if (item.collideWith(this)) {
-            // 아이템을 획득한 경우
-            scoreManager.getItem(item.id); // 점수 업데이트
-            console.log(`Player collided with item: ${item.id}`);
-        }
-    }
-}
-
 
 export default Item
